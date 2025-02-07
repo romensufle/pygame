@@ -2,6 +2,7 @@ import os
 import sys
 
 import random
+import pygame_ui_toolkit
 
 import pygame
 from pygame.time import Clock
@@ -9,11 +10,11 @@ from pygame.time import Clock
 pygame.init()
 size = width, height = 500, 620
 screen_rect = (0, 0, width, height)
-screen = pygame.display.set_mode(size)
 cowboy_sprites = pygame.sprite.Group()
 bullet_sprites = pygame.sprite.Group()
 zombi_sprites = pygame.sprite.Group()
 drum_sprites = pygame.sprite.Group()
+buttons_sprites = pygame.sprite.Group()
 
 
 def load_image(name, colorkey=None):
@@ -34,7 +35,64 @@ def load_image(name, colorkey=None):
     return image
 
 
-def load_conditions(hard=1):
+def start_screen():
+    zast = pygame.display.set_mode((960, 540))
+    fon = pygame.transform.scale(load_image('fon.png'), (960, 540))
+    zast.blit(fon, (0, 0))
+
+    btn1 = pygame_ui_toolkit.button.ImageButton(zast, 250, 450, 102, 102,
+                                                'data/btn1.png', on_click=load_conditions)
+
+    btn2 = pygame_ui_toolkit.button.ImageButton(zast, 450, 450, 102, 102,
+                                                'data/btn2.png', on_click=quit)
+
+    btn3 = pygame_ui_toolkit.button.ImageButton(zast, 650, 450, 102, 102,
+                                                'data/btn3.png', on_click=quit)
+
+    while True:
+        for event in pygame.event.get():
+            if event.type == pygame.QUIT:
+                pygame.QUIT()
+            elif event.type == pygame.KEYDOWN or \
+                 event.type == pygame.MOUSEBUTTONDOWN:
+                return  # начинаем игру
+        pygame.display.flip()
+        btn1.update()
+        btn2.update()
+        btn3.update()
+
+class End_Screen:
+    def __init__(self):
+        self.scor = 0
+
+    def score(self, hard=1):
+        self.scor += 100 * hard
+
+    def ending(self):
+        self.sc = str(self.scor)
+        zast = pygame.display.set_mode((960, 540))
+        fon = pygame.transform.scale(load_image('end_fon.png'), (960, 540))
+        zast.blit(fon, (0, 0))
+        font = pygame.font.Font(None, 36)
+        text_coord = 313
+        string_rendered = font.render(self.sc, 1, pygame.Color('black'))
+        intro_rect = string_rendered.get_rect()
+        intro_rect.top = text_coord
+        intro_rect.x = 409
+        zast.blit(string_rendered, intro_rect)
+        while True:
+            for event in pygame.event.get():
+                if event.type == pygame.QUIT:
+                    pygame.QUIT()
+                elif event.type == pygame.KEYDOWN or \
+                        event.type == pygame.MOUSEBUTTONDOWN:
+                    start = start_screen()
+                    return  # начинаем игру
+
+            pygame.display.flip()
+
+
+def load_conditions(g, hard=1):
     sp_koef = 1
     spawn_sp_koef = 1
     xp_koef = 1
@@ -54,7 +112,7 @@ def load_conditions(hard=1):
 
 
 def load_level():
-    pass
+    print(1)
 
 
 class Drum(pygame.sprite.Sprite):
@@ -88,7 +146,7 @@ class Cowboy(pygame.sprite.Sprite):  # класс ковбоя
         self.rect = self.image.get_rect()
 
 
-class Bullet(pygame.sprite.Sprite):  #  класс пули
+class Bullet(pygame.sprite.Sprite):  # класс пули
     size = (20, 20)
 
     def __init__(self, group, pos):
@@ -103,63 +161,15 @@ class Bullet(pygame.sprite.Sprite):  #  класс пули
             self.kill()  # удаляет пулю, если она ушла за экран
         if pygame.sprite.groupcollide(bullet_sprites, zombi_sprites, True, True):
             Zombo.realrealdead()
+            end.score()
 
 
 class Reload():  # класс перезарядки
     def __init__(self):
         self.drum = 6
 
-
     def shoot(self):
         self.drum = self.drum - 1
-        if self.drum <= 0:
-            re = True
-            while re is True:
-                drum = Drum(load_image("reload_drum.png"), 6, 2, 400, 400)
-                k = 0
-                for event in pygame.event.get():
-                    if event.type == pygame.QUIT:
-                        pygame.QUIT()
-                    if event.type == pygame.KEYDOWN and event.key == pygame.K_q and k == 0:
-                        k = 1
-                        drum_sprites.update()
-                    if event.type == pygame.KEYDOWN and event.key == pygame.K_w:
-                        k = 2
-                        drum_sprites.update()
-                    if event.type == pygame.KEYDOWN and event.key == pygame.K_e and k == 2:
-                        k = 3
-                        drum_sprites.update()
-                    if event.type == pygame.KEYDOWN and event.key == pygame.K_r and k == 3:
-                        k = 4
-                        drum_sprites.update()
-                    if event.type == pygame.KEYDOWN and event.key == pygame.K_t and k == 4:
-                        k = 5
-                        drum_sprites.update()
-                    if event.type == pygame.KEYDOWN and event.key == pygame.K_y and k == 5:
-                        k = 6
-                        drum_sprites.update()
-                    if event.type == pygame.KEYDOWN and event.key == pygame.K_1 and k == 6:
-                        k = 7
-                        drum_sprites.update()
-                    if event.type == pygame.KEYDOWN and event.key == pygame.K_2 and k == 7:
-                        k = 8
-                        drum_sprites.update()
-                    if event.type == pygame.KEYDOWN and event.key == pygame.K_3 and k == 8:
-                        k = 9
-                        drum_sprites.update()
-                    if event.type == pygame.KEYDOWN and event.key == pygame.K_4 and k == 9:
-                        k = 10
-                        drum_sprites.update()
-                    if event.type == pygame.KEYDOWN and event.key == pygame.K_5 and k == 10:
-                        k = 11
-                        drum_sprites.update()
-                    if event.type == pygame.KEYDOWN and event.key == pygame.K_6 and k == 11:
-                        k = 12
-                    if k == 12:
-                        self.drum = 6
-                        pygame.QUIT()
-                drum_sprites.draw(screen)
-                pygame.display.flip()
 
 
 class AnimatedSprite(pygame.sprite.Sprite):
@@ -192,10 +202,13 @@ class AnimatedSprite(pygame.sprite.Sprite):
         #  плюс очки
 
 
+end = End_Screen()
+start_screen()
+screen = pygame.display.set_mode(size)
 Joe = Cowboy(cowboy_sprites)
 shot = Reload()
 con = load_conditions(3)
-clock = pygame.time.Clock()
+clock = Clock()
 
 bullet_spid = pygame.USEREVENT + 1
 pygame.time.set_timer(bullet_spid, 10)  # скорость полёта пули
@@ -206,9 +219,8 @@ pygame.time.set_timer(zombi_speed, int(50 / con[0]))  # скорость пер�
 zombi_spawn = pygame.USEREVENT + 3
 pygame.time.set_timer(zombi_spawn, int(5000 / con[1]))  # скорость появления зомби
 
-
-
 running = True
+re = False
 while running:
     for event in pygame.event.get():
         if event.type == pygame.QUIT:
@@ -217,10 +229,14 @@ while running:
             Joe.rect.left -= 100
         if event.type == pygame.KEYDOWN and event.key == pygame.K_RIGHT and Joe.rect.right <= 400:
             Joe.rect.right += 100
-        if event.type == pygame.KEYDOWN and event.key == pygame.K_SPACE:  # выстрел
+        if event.type == pygame.KEYDOWN and event.key == pygame.K_SPACE and not re:  # выстрел
             pos = (Joe.rect.bottomleft[0] + 40, Joe.rect.bottomleft[1])
             bul = Bullet(bullet_sprites, pos)
             shot.shoot()
+            if shot.drum <= 0:
+                re = True
+                drum = Drum(load_image("reload_drum.png"), 6, 2, 400, 400)
+                k = 0
             # звук выстрела
         if event.type == bullet_spid:
             bullet_sprites.update()
@@ -228,12 +244,51 @@ while running:
             zombi_sprites.update()
         if event.type == zombi_spawn:
             Zombo = AnimatedSprite(load_image("zombi.png"), 4, 2)
+        if event.type == pygame.KEYDOWN and event.key == pygame.K_q and re and k == 0:
+            k = 1
+            drum_sprites.update()
+        if event.type == pygame.KEYDOWN and event.key == pygame.K_w and re and k == 1:
+            k = 2
+            drum_sprites.update()
+        if event.type == pygame.KEYDOWN and event.key == pygame.K_e and re and k == 2:
+            k = 3
+            drum_sprites.update()
+        if event.type == pygame.KEYDOWN and event.key == pygame.K_r and re and k == 3:
+            k = 4
+            drum_sprites.update()
+        if event.type == pygame.KEYDOWN and event.key == pygame.K_t and re and k == 4:
+            k = 5
+            drum_sprites.update()
+        if event.type == pygame.KEYDOWN and event.key == pygame.K_y and re and k == 5:
+            k = 6
+            drum_sprites.update()
+        if event.type == pygame.KEYDOWN and event.key == pygame.K_1 and re and k == 6:
+            k = 7
+            drum_sprites.update()
+        if event.type == pygame.KEYDOWN and event.key == pygame.K_2 and re and k == 7:
+            k = 8
+            drum_sprites.update()
+        if event.type == pygame.KEYDOWN and event.key == pygame.K_3 and re and k == 8:
+            k = 9
+            drum_sprites.update()
+        if event.type == pygame.KEYDOWN and event.key == pygame.K_4 and re and k == 9:
+            k = 10
+            drum_sprites.update()
+        if event.type == pygame.KEYDOWN and event.key == pygame.K_5 and re and k == 10:
+            k = 11
+            drum_sprites.update()
+        if event.type == pygame.KEYDOWN and event.key == pygame.K_6 and re and k == 11:
+            shot.drum = 6
+            re = False
+            drum.kill()
 
     screen.fill('#FFFFFF')
+
     cowboy_sprites.draw(screen)
     cowboy_sprites.update()
     bullet_sprites.draw(screen)
     zombi_sprites.draw(screen)
+    drum_sprites.draw(screen)
     pygame.display.flip()
 pygame.quit()
 #  end_screen(счёт)
