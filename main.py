@@ -15,6 +15,8 @@ bullet_sprites = pygame.sprite.Group()
 zombi_sprites = pygame.sprite.Group()
 drum_sprites = pygame.sprite.Group()
 buttons_sprites = pygame.sprite.Group()
+wall_sprites = pygame.sprite.Group()
+broken_wall_sprites = pygame.sprite.Group()
 
 
 def load_image(name, colorkey=None):
@@ -54,12 +56,13 @@ def start_screen():
             if event.type == pygame.QUIT:
                 pygame.QUIT()
             elif event.type == pygame.KEYDOWN or \
-                 event.type == pygame.MOUSEBUTTONDOWN:
+                    event.type == pygame.MOUSEBUTTONDOWN:
                 return  # начинаем игру
         pygame.display.flip()
         btn1.update()
         btn2.update()
         btn3.update()
+
 
 class End_Screen:
     def __init__(self):
@@ -146,6 +149,26 @@ class Cowboy(pygame.sprite.Sprite):  # класс ковбоя
         self.rect = self.image.get_rect()
 
 
+class Wall(pygame.sprite.Sprite):  # класс стены
+    def __init__(self, group, w_gr, n):
+        super().__init__(group)
+
+        self.n = n
+
+        self.image = load_image(f'walls/{w_gr}{n}.png')
+
+        self.rect = self.image.get_rect().move((0 + 100 * (n - 1), 0))
+
+    def update(self, *args, **kwargs):
+        self.image = load_image(f'walls/br_wall{self.n}.png')
+
+        self.rect = self.image.get_rect().move((0 + 100 * (self.n - 1), 0))
+        if pygame.sprite.spritecollideany(broken_wall_sprites, zombi_sprites):
+            end.ending()
+
+
+
+
 class Bullet(pygame.sprite.Sprite):  # класс пули
     size = (20, 20)
 
@@ -206,6 +229,7 @@ end = End_Screen()
 start_screen()
 screen = pygame.display.set_mode(size)
 Joe = Cowboy(cowboy_sprites)
+wall1 = Wall(wall_sprites, 'wall', 1)
 shot = Reload()
 con = load_conditions(3)
 clock = Clock()
@@ -284,11 +308,11 @@ while running:
 
     screen.fill('#FFFFFF')
 
+    wall_sprites.draw(screen)
     cowboy_sprites.draw(screen)
     cowboy_sprites.update()
     bullet_sprites.draw(screen)
     zombi_sprites.draw(screen)
     drum_sprites.draw(screen)
     pygame.display.flip()
-pygame.quit()
-#  end_screen(счёт)
+end.ending()
