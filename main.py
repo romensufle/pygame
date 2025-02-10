@@ -8,6 +8,7 @@ import pygame
 from pygame.time import Clock
 
 pygame.init()
+pygame.display.set_caption('Joe HATES zombies')
 size = width, height = 500, 620
 screen_rect = (0, 0, width, height)
 cowboy_sprites = pygame.sprite.Group()
@@ -17,6 +18,7 @@ drum_sprites = pygame.sprite.Group()
 buttons_sprites = pygame.sprite.Group()
 wall_sprites = pygame.sprite.Group()
 broken_wall_sprites = pygame.sprite.Group()
+field_sprites = pygame.sprite.Group()
 
 
 def load_image(name, colorkey=None):
@@ -37,31 +39,37 @@ def load_image(name, colorkey=None):
     return image
 
 
-def start_screen():
-    zast = pygame.display.set_mode((960, 540))
-    fon = pygame.transform.scale(load_image('fon.png'), (960, 540))
-    zast.blit(fon, (0, 0))
+class Start_Screen:
+    def __init__(self):
+        self.flag = True
 
-    btn1 = pygame_ui_toolkit.button.ImageButton(zast, 250, 450, 102, 102,
-                                                'data/btn1.png', on_click=load_conditions)
+    def fla(self):
+        self.flag = False
 
-    btn2 = pygame_ui_toolkit.button.ImageButton(zast, 450, 450, 102, 102,
-                                                'data/btn2.png', on_click=quit)
+    def start_screen(self):
+        zast = pygame.display.set_mode((960, 540))
+        fon = pygame.transform.scale(load_image('fon.png'), (960, 540))
+        zast.blit(fon, (0, 0))
 
-    btn3 = pygame_ui_toolkit.button.ImageButton(zast, 650, 450, 102, 102,
-                                                'data/btn3.png', on_click=quit)
+        btn1 = pygame_ui_toolkit.button.ImageButton(zast, 250, 450, 102, 102,
+                                                    'data/btn1.png', on_click=lambda x: load_conditions(1))
 
-    while True:
-        for event in pygame.event.get():
-            if event.type == pygame.QUIT:
-                pygame.QUIT()
-            elif event.type == pygame.KEYDOWN or \
-                    event.type == pygame.MOUSEBUTTONDOWN:
-                return  # начинаем игру
-        pygame.display.flip()
-        btn1.update()
-        btn2.update()
-        btn3.update()
+        btn2 = pygame_ui_toolkit.button.ImageButton(zast, 450, 450, 102, 102,
+                                                    'data/btn2.png', on_click=lambda x: load_conditions(2))
+
+        btn3 = pygame_ui_toolkit.button.ImageButton(zast, 650, 450, 102, 102,
+                                                    'data/btn3.png', on_click=lambda x: load_conditions(3))
+
+        while True:
+            for event in pygame.event.get():
+                if event.type == pygame.QUIT:
+                    pygame.QUIT()
+                elif event.type == pygame.KEYDOWN or not self.flag:
+                    return  # начинаем игру
+            pygame.display.flip()
+            btn1.update()
+            btn2.update()
+            btn3.update()
 
 
 class End_Screen:
@@ -89,13 +97,14 @@ class End_Screen:
                     pygame.QUIT()
                 elif event.type == pygame.KEYDOWN or \
                         event.type == pygame.MOUSEBUTTONDOWN:
-                    start = start_screen()
+                    start = Start_Screen
+                    start.start_screen()
                     return  # начинаем игру
 
             pygame.display.flip()
 
 
-def load_conditions(g, hard=1):
+def load_conditions(hard=1):
     sp_koef = 1
     spawn_sp_koef = 1
     xp_koef = 1
@@ -111,11 +120,13 @@ def load_conditions(g, hard=1):
         #  добавить сломанные стены
     #  load_level(сюда какие стены сломаны)
     conditions = [sp_koef, spawn_sp_koef, xp_koef]
+    start = Start_Screen()
+    start.fla()
     return conditions
 
 
 def load_level():
-    print(1)
+    pass
 
 
 class Drum(pygame.sprite.Sprite):
@@ -148,25 +159,41 @@ class Cowboy(pygame.sprite.Sprite):  # класс ковбоя
 
         self.rect = self.image.get_rect()
 
+    def update(self, *args, **kwargs):
+        if pygame.sprite.groupcollide(cowboy_sprites, broken_wall_sprites, False, True):
+            wall = Wall(wall_sprites, 'wall', self.rect.x // 100 + 1)
+
+
 
 class Wall(pygame.sprite.Sprite):  # класс стены
     def __init__(self, group, w_gr, n):
         super().__init__(group)
-
         self.n = n
 
         self.image = load_image(f'walls/{w_gr}{n}.png')
 
         self.rect = self.image.get_rect().move((0 + 100 * (n - 1), 0))
 
-    def update(self, *args, **kwargs):
-        self.image = load_image(f'walls/br_wall{self.n}.png')
-
-        self.rect = self.image.get_rect().move((0 + 100 * (self.n - 1), 0))
-        if pygame.sprite.spritecollideany(broken_wall_sprites, zombi_sprites):
-            end.ending()
+    def broke(self, *args, **kwargs):
+        pass
 
 
+class Broken_Wall(pygame.sprite.Sprite):
+    def __init__(self, group, w_gr, n):
+        super().__init__(group)
+        self.image = load_image(f'walls/{w_gr}{n}.png')
+
+        self.rect = self.image.get_rect().move((0 + 100 * (n - 1), 0))
+
+        print('work', n)
+
+
+class Field(pygame.sprite.Sprite):
+    def __init__(self):
+        super().__init__(field_sprites)
+        self.image = load_image('field.png')
+
+        self.rect = self.image.get_rect().move((0, 130))
 
 
 class Bullet(pygame.sprite.Sprite):  # класс пули
@@ -184,7 +211,6 @@ class Bullet(pygame.sprite.Sprite):  # класс пули
             self.kill()  # удаляет пулю, если она ушла за экран
         if pygame.sprite.groupcollide(bullet_sprites, zombi_sprites, True, True):
             Zombo.realrealdead()
-            end.score()
 
 
 class Reload():  # класс перезарядки
@@ -199,11 +225,12 @@ class AnimatedSprite(pygame.sprite.Sprite):
     def __init__(self, sheet, columns, rows):
         super().__init__(zombi_sprites)
         self.pos = 20
+        self.n = random.randint(0, 4)
         self.frames = []
         self.cut_sheet(sheet, columns, rows)
         self.cur_frame = 0
         self.image = self.frames[self.cur_frame]
-        self.rect = self.image.get_rect().move(self.pos + 100 * random.randint(0, 4), 620)
+        self.rect = self.image.get_rect().move(self.pos + 100 * self.n, 620)
 
     def cut_sheet(self, sheet, columns, rows):
         self.rect = pygame.Rect(0, 0, sheet.get_width() // columns,
@@ -218,30 +245,36 @@ class AnimatedSprite(pygame.sprite.Sprite):
         self.cur_frame = (self.cur_frame + 1) % len(self.frames)
         self.image = self.frames[self.cur_frame]
         self.rect.top -= 1
+        if pygame.sprite.groupcollide(wall_sprites, zombi_sprites, True, True):
+            wall = Broken_Wall(broken_wall_sprites, 'br_wall', self.n + 1)
+        if pygame.sprite.groupcollide(broken_wall_sprites, zombi_sprites, False, False):
+            end.ending()
 
     def realrealdead(self):  # зомби умирает
-        pass
+        end.score()
         #  звук смерти
         #  плюс очки
 
 
 end = End_Screen()
-start_screen()
+start = Start_Screen()
+start.start_screen()
 screen = pygame.display.set_mode(size)
 Joe = Cowboy(cowboy_sprites)
-wall1 = Wall(wall_sprites, 'wall', 1)
-shot = Reload()
-con = load_conditions(3)
-clock = Clock()
+Field()
+for n in range(5):
+    wall = Wall(wall_sprites, 'wall', n + 1)
 
+shot = Reload()
+clock = Clock()
 bullet_spid = pygame.USEREVENT + 1
-pygame.time.set_timer(bullet_spid, 10)  # скорость полёта пули
+pygame.time.set_timer(bullet_spid, 3)  # скорость полёта пули
 
 zombi_speed = pygame.USEREVENT + 2
-pygame.time.set_timer(zombi_speed, int(50 / con[0]))  # скорость передвижения зомби
+pygame.time.set_timer(zombi_speed, int(50))  # скорость передвижения зомби / con[0]
 
 zombi_spawn = pygame.USEREVENT + 3
-pygame.time.set_timer(zombi_spawn, int(5000 / con[1]))  # скорость появления зомби
+pygame.time.set_timer(zombi_spawn, int(5000))  # скорость появления зомби / con[1]
 
 running = True
 re = False
@@ -249,6 +282,8 @@ while running:
     for event in pygame.event.get():
         if event.type == pygame.QUIT:
             running = False
+        if event.type == pygame.KEYDOWN and event.key == pygame.K_d:
+            cowboy_sprites.update()
         if event.type == pygame.KEYDOWN and event.key == pygame.K_LEFT and Joe.rect.left >= 100:
             Joe.rect.left -= 100
         if event.type == pygame.KEYDOWN and event.key == pygame.K_RIGHT and Joe.rect.right <= 400:
@@ -309,8 +344,9 @@ while running:
     screen.fill('#FFFFFF')
 
     wall_sprites.draw(screen)
+    broken_wall_sprites.draw(screen)
+    field_sprites.draw(screen)
     cowboy_sprites.draw(screen)
-    cowboy_sprites.update()
     bullet_sprites.draw(screen)
     zombi_sprites.draw(screen)
     drum_sprites.draw(screen)
