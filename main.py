@@ -1,4 +1,5 @@
 import os
+import sqlite3
 import sys
 
 import random
@@ -41,30 +42,45 @@ def load_image(name, colorkey=None):
 
 class Start_Screen:
     def __init__(self):
-        self.flag = True
-
+        self.condition = Condition()
+        self.start_event = pygame.USEREVENT + 1
+        con = sqlite3.connect('gamescore.sqlite')
+        cur = con.cursor()
+        sql1 = '''
+                SELECT DISTINCT score FROM highscore
+                        '''
+        res = cur.execute(sql1).fetchall()
+        con.close()
+        self.high = max(el[0] for el in res)
     def fla(self):
-        self.flag = False
+        pygame.time.set_timer(self.start_event, 1)
 
     def start_screen(self):
         zast = pygame.display.set_mode((960, 540))
         fon = pygame.transform.scale(load_image('fon.png'), (960, 540))
         zast.blit(fon, (0, 0))
-
+        font = pygame.font.Font(None, 36)
+        text_coord = 295
+        string_rendered = font.render(str(self.high), 1, pygame.Color('black'))
+        intro_rect = string_rendered.get_rect()
+        intro_rect.top = text_coord
+        intro_rect.x = 380
+        zast.blit(string_rendered, intro_rect)
         btn1 = pygame_ui_toolkit.button.ImageButton(zast, 250, 450, 102, 102,
-                                                    'data/btn1.png', on_click=lambda x: load_conditions(1))
-
+                                                    'data/btn1.png',
+                                                    on_click=lambda x: self.condition.load_conditions(1))
         btn2 = pygame_ui_toolkit.button.ImageButton(zast, 450, 450, 102, 102,
-                                                    'data/btn2.png', on_click=lambda x: load_conditions(2))
-
+                                                    'data/btn2.png',
+                                                    on_click=lambda x: self.condition.load_conditions(2))
         btn3 = pygame_ui_toolkit.button.ImageButton(zast, 650, 450, 102, 102,
-                                                    'data/btn3.png', on_click=lambda x: load_conditions(3))
+                                                    'data/btn3.png',
+                                                    on_click=lambda x: self.condition.load_conditions(3))
 
         while True:
             for event in pygame.event.get():
                 if event.type == pygame.QUIT:
                     pygame.QUIT()
-                elif event.type == pygame.KEYDOWN or not self.flag:
+                elif event.type == self.start_event:
                     return  # начинаем игру
             pygame.display.flip()
             btn1.update()
@@ -75,9 +91,10 @@ class Start_Screen:
 class End_Screen:
     def __init__(self):
         self.scor = 0
+        self.flag = False
 
-    def score(self, hard=1):
-        self.scor += 100 * hard
+    def score(self, score):
+        self.scor += score
 
     def ending(self):
         self.sc = str(self.scor)
@@ -91,42 +108,60 @@ class End_Screen:
         intro_rect.top = text_coord
         intro_rect.x = 409
         zast.blit(string_rendered, intro_rect)
+        con = sqlite3.connect('gamescore.sqlite')
+        cur = con.cursor()
+        sql1 = f'''
+            INSERT INTO highscore(score)
+            VALUES ({self.sc})
+                '''
+        cur.execute(sql1)
+        con.commit()
+        con.close()
         while True:
             for event in pygame.event.get():
                 if event.type == pygame.QUIT:
                     pygame.QUIT()
                 elif event.type == pygame.KEYDOWN or \
                         event.type == pygame.MOUSEBUTTONDOWN:
-                    start = Start_Screen
-                    start.start_screen()
-                    return  # начинаем игру
-
+                    return
             pygame.display.flip()
 
 
-def load_conditions(hard=1):
-    sp_koef = 1
-    spawn_sp_koef = 1
-    xp_koef = 1
-    if hard == 2:
-        sp_koef = 1.25
-        spawn_sp_koef = 2
-        xp_koef = 2
-        #  добавить сломанные стены
-    elif hard == 3:
-        sp_koef = 1.5
-        spawn_sp_koef = 2.5
-        xp_koef = 3
-        #  добавить сломанные стены
-    #  load_level(сюда какие стены сломаны)
-    conditions = [sp_koef, spawn_sp_koef, xp_koef]
-    start = Start_Screen()
-    start.fla()
-    return conditions
+class Condition:
+    def load_conditions(self, hard=1):
+        sp_koef = 1
+        spawn_sp_koef = 1
+        xp_koef = 1
+        walls = [0, 0, 0, 0, 0]
+        if hard == 2:
+            sp_koef = 2
+            spawn_sp_koef = 2.5
+            xp_koef = 2
+            walls = [0, 0, 1, 0, 0]
+        elif hard == 3:
+            sp_koef = 3
+            spawn_sp_koef = 3.5
+            xp_koef = 3
+            walls = [0, 1, 0, 1, 1]
+        load_level(walls)
+        global conditions
+        conditions = [sp_koef, spawn_sp_koef, xp_koef]
+        start = Start_Screen()
+        start.fla()
 
 
-def load_level():
-    pass
+def load_level(walls):  # создает заданные стенки
+    global level
+    level = []
+    n = 1
+    for el in walls:
+        if el == 0:
+            wall = Wall(wall_sprites, 'wall', n)
+
+        else:
+            wall = Broken_Wall(broken_wall_sprites, 'br_wall', n)
+        level.append(wall)
+        n += 1
 
 
 class Drum(pygame.sprite.Sprite):
@@ -164,7 +199,6 @@ class Cowboy(pygame.sprite.Sprite):  # класс ковбоя
             wall = Wall(wall_sprites, 'wall', self.rect.x // 100 + 1)
 
 
-
 class Wall(pygame.sprite.Sprite):  # класс стены
     def __init__(self, group, w_gr, n):
         super().__init__(group)
@@ -175,7 +209,7 @@ class Wall(pygame.sprite.Sprite):  # класс стены
         self.rect = self.image.get_rect().move((0 + 100 * (n - 1), 0))
 
     def broke(self, *args, **kwargs):
-        pass
+        pass  # звук сломанной стены
 
 
 class Broken_Wall(pygame.sprite.Sprite):
@@ -184,8 +218,6 @@ class Broken_Wall(pygame.sprite.Sprite):
         self.image = load_image(f'walls/{w_gr}{n}.png')
 
         self.rect = self.image.get_rect().move((0 + 100 * (n - 1), 0))
-
-        print('work', n)
 
 
 class Field(pygame.sprite.Sprite):
@@ -251,7 +283,7 @@ class AnimatedSprite(pygame.sprite.Sprite):
             end.ending()
 
     def realrealdead(self):  # зомби умирает
-        end.score()
+        end.score(100)
         #  звук смерти
         #  плюс очки
 
@@ -262,19 +294,17 @@ start.start_screen()
 screen = pygame.display.set_mode(size)
 Joe = Cowboy(cowboy_sprites)
 Field()
-for n in range(5):
-    wall = Wall(wall_sprites, 'wall', n + 1)
-
+wall1, wall2, wall3, wall4, wall5 = level[0], level[1], level[2], level[3], level[4]
 shot = Reload()
 clock = Clock()
 bullet_spid = pygame.USEREVENT + 1
 pygame.time.set_timer(bullet_spid, 3)  # скорость полёта пули
 
 zombi_speed = pygame.USEREVENT + 2
-pygame.time.set_timer(zombi_speed, int(50))  # скорость передвижения зомби / con[0]
+pygame.time.set_timer(zombi_speed, int(50 / conditions[0]))  # скорость передвижения зомби
 
 zombi_spawn = pygame.USEREVENT + 3
-pygame.time.set_timer(zombi_spawn, int(5000))  # скорость появления зомби / con[1]
+pygame.time.set_timer(zombi_spawn, int(5000 / conditions[1]))  # скорость появления зомби /
 
 running = True
 re = False
@@ -284,6 +314,7 @@ while running:
             running = False
         if event.type == pygame.KEYDOWN and event.key == pygame.K_d:
             cowboy_sprites.update()
+            end.score(50)
         if event.type == pygame.KEYDOWN and event.key == pygame.K_LEFT and Joe.rect.left >= 100:
             Joe.rect.left -= 100
         if event.type == pygame.KEYDOWN and event.key == pygame.K_RIGHT and Joe.rect.right <= 400:
@@ -339,6 +370,7 @@ while running:
         if event.type == pygame.KEYDOWN and event.key == pygame.K_6 and re and k == 11:
             shot.drum = 6
             re = False
+            end.score(25)
             drum.kill()
 
     screen.fill('#FFFFFF')
