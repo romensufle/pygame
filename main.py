@@ -279,18 +279,32 @@ class AnimatedSprite(pygame.sprite.Sprite):
         self.rect.top -= 1
         if pygame.sprite.groupcollide(wall_sprites, zombi_sprites, True, True):
             wall = Broken_Wall(broken_wall_sprites, 'br_wall', self.n + 1)
+            wl.play()
         if pygame.sprite.groupcollide(broken_wall_sprites, zombi_sprites, False, False):
             end.ending()
 
     def realrealdead(self):  # зомби умирает
         end.score(100)
+        dead.play()
         #  звук смерти
         #  плюс очки
 
 
+pygame.mixer.music.load('data/sounds/fon_music.mp3')
+shoot = pygame.mixer.Sound('data/sounds/shoot.wav')
+zombo = pygame.mixer.Sound('data/sounds/zombi.wav')
+shag = pygame.mixer.Sound('data/sounds/speed_shag.wav')
+dead = pygame.mixer.Sound('data/sounds/dead.wav')
+bull = pygame.mixer.Sound('data/sounds/reload.wav')
+bar = pygame.mixer.Sound('data/sounds/done_reload.wav')
+wl = pygame.mixer.Sound('data/sounds/wall.wav')
+repair = pygame.mixer.Sound('data/sounds/repair.wav')
+
 end = End_Screen()
+pygame.mixer.music.play(-1)
 start = Start_Screen()
 start.start_screen()
+
 screen = pygame.display.set_mode(size)
 Joe = Cowboy(cowboy_sprites)
 Field()
@@ -314,12 +328,16 @@ while running:
             running = False
         if event.type == pygame.KEYDOWN and event.key == pygame.K_d:
             cowboy_sprites.update()
+            repair.play()
             end.score(50)
         if event.type == pygame.KEYDOWN and event.key == pygame.K_LEFT and Joe.rect.left >= 100:
             Joe.rect.left -= 100
+            shag.play()
         if event.type == pygame.KEYDOWN and event.key == pygame.K_RIGHT and Joe.rect.right <= 400:
             Joe.rect.right += 100
+            shag.play()
         if event.type == pygame.KEYDOWN and event.key == pygame.K_SPACE and not re:  # выстрел
+            shoot.play()
             pos = (Joe.rect.bottomleft[0] + 40, Joe.rect.bottomleft[1])
             bul = Bullet(bullet_sprites, pos)
             shot.shoot()
@@ -334,41 +352,54 @@ while running:
             zombi_sprites.update()
         if event.type == zombi_spawn:
             Zombo = AnimatedSprite(load_image("zombi.png"), 4, 2)
+            zombo.play()
         if event.type == pygame.KEYDOWN and event.key == pygame.K_q and re and k == 0:
             k = 1
             drum_sprites.update()
+            bull.play()
         if event.type == pygame.KEYDOWN and event.key == pygame.K_w and re and k == 1:
             k = 2
             drum_sprites.update()
+            bull.play()
         if event.type == pygame.KEYDOWN and event.key == pygame.K_e and re and k == 2:
             k = 3
             drum_sprites.update()
+            bull.play()
         if event.type == pygame.KEYDOWN and event.key == pygame.K_r and re and k == 3:
             k = 4
             drum_sprites.update()
+            bull.play()
         if event.type == pygame.KEYDOWN and event.key == pygame.K_t and re and k == 4:
             k = 5
             drum_sprites.update()
+            bull.play()
         if event.type == pygame.KEYDOWN and event.key == pygame.K_y and re and k == 5:
             k = 6
             drum_sprites.update()
+            bull.play()
         if event.type == pygame.KEYDOWN and event.key == pygame.K_1 and re and k == 6:
             k = 7
             drum_sprites.update()
+            bull.play()
         if event.type == pygame.KEYDOWN and event.key == pygame.K_2 and re and k == 7:
             k = 8
             drum_sprites.update()
+            bull.play()
         if event.type == pygame.KEYDOWN and event.key == pygame.K_3 and re and k == 8:
             k = 9
             drum_sprites.update()
+            bull.play()
         if event.type == pygame.KEYDOWN and event.key == pygame.K_4 and re and k == 9:
             k = 10
             drum_sprites.update()
+            bull.play()
         if event.type == pygame.KEYDOWN and event.key == pygame.K_5 and re and k == 10:
             k = 11
             drum_sprites.update()
+            bull.play()
         if event.type == pygame.KEYDOWN and event.key == pygame.K_6 and re and k == 11:
             shot.drum = 6
+            bar.play()
             re = False
             end.score(25)
             drum.kill()
